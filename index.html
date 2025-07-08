@@ -155,9 +155,11 @@ ${events}
         scope: SCOPES,
         callback: (tokenResponse) => {
           accessToken = tokenResponse.access_token;
-          gapi.load('client', () => {
-  gapi.client.load('drive', 'v3').then(() => {
-    createFolderAndUpload(entry.filename, entry.content);
+         gapi.load('client', () => {
+  gapi.client.init({}).then(() => {
+    gapi.client.load('drive', 'v3').then(() => {
+      createFolderAndUpload(entry.filename, entry.content);
+    });
   });
 });
           });
