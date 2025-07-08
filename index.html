@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content=device-width, initial-scale=1.0 />
   <title>Smart Journal</title>
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -64,7 +64,7 @@
     <h2>Journal Entry</h2>
 
     <label for="entryDate">Date</label>
-    <input type="date" id="entryDate" required/>
+    <input type="date" id="entryDate" />
 
     <label for="places">Places Visited</label>
     <textarea id="places" rows="2"></textarea>
@@ -133,7 +133,7 @@ ${events}
 --------------------------------------
 
 `;
-      return { content, filename: `journal-${date}.txt` };
+      return { content, filename: \`journal-\${date}.txt\` };
     }
 
     function saveLocal() {
@@ -151,19 +151,14 @@ ${events}
       if (!entry) return;
 
       tokenClient = google.accounts.oauth2.initTokenClient({
-  client_id: CLIENT_ID,
-  scope: SCOPES,
-  callback: (tokenResponse) => {
-    accessToken = tokenResponse.access_token;
-    gapi.load('client', () => {
-      gapi.client.init({}).then(() => {
-        gapi.client.load('drive', 'v3').then(() => {
-          createFolderAndUpload(entry.filename, entry.content);
-        });
-      });
-    });
-  }
-});
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse) => {
+          accessToken = tokenResponse.access_token;
+          gapi.load('client', () => {
+            gapi.client.init({}).then(() => {
+              createFolderAndUpload(entry.filename, entry.content);
+            });
           });
         }
       });
