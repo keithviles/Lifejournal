@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content=device-width, initial-scale=1.0 />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Journal</title>
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body {
       font-family: sans-serif;
+      background: #f5f5f5;
       margin: 0;
       padding: 1rem;
-      background: #f5f5f5;
     }
     .container {
       max-width: 700px;
@@ -20,196 +19,142 @@
       background: white;
       padding: 1rem;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
-    h2 {
-      text-align: center;
-    }
-    label {
-      font-weight: bold;
-      margin-top: 1rem;
-      display: block;
-    }
-    textarea, input[type="date"] {
+    input, textarea, button {
       width: 100%;
+      margin-top: 0.5rem;
       padding: 0.5rem;
       font-size: 1rem;
-      margin-top: 0.25rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    .button-row {
-      margin-top: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
     }
     button {
-      padding: 0.75rem;
-      font-size: 1rem;
-      border: none;
-      background-color: #007bff;
+      background: #4CAF50;
       color: white;
-      border-radius: 4px;
+      border: none;
       cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Journal Entry</h2>
-
-    <label for="entryDate">Date</label>
-    <input type="date" id="entryDate" />
-
-    <label for="places">Places Visited</label>
-    <textarea id="places" rows="2"></textarea>
-
-    <label for="meetings">Meetings</label>
-    <textarea id="meetings" rows="2"></textarea>
-
-    <label for="appointments">Appointments</label>
-    <textarea id="appointments" rows="2"></textarea>
-
-    <label for="reminders">Things to Remember</label>
-    <textarea id="reminders" rows="2"></textarea>
-
-    <label for="journal">Journal Entry</label>
-    <textarea id="journal" rows="4"></textarea>
-
-    <label for="events">Upcoming Events</label>
-    <textarea id="events" rows="2"></textarea>
-
-    <div class="button-row">
-      <button onclick="saveLocal()">Save as TXT</button>
-      <button onclick="authorizeAndUpload()">Upload to Google Drive</button>
-    </div>
+    <h2>Smart Journal</h2>
+    <div id="signinDiv"></div>
+    <form id="journalForm" style="display:none;">
+      <label>Places Visited</label>
+      <input type="text" id="places" />
+      <label>Meetings</label>
+      <input type="text" id="meetings" />
+      <label>Appointments</label>
+      <input type="text" id="appointments" />
+      <label>Things to Remember</label>
+      <textarea id="remember"></textarea>
+      <label>Journal Entry</label>
+      <textarea id="entry"></textarea>
+      <label>Upcoming Events</label>
+      <textarea id="events"></textarea>
+      <button type="submit">Save Entry</button>
+    </form>
+    <p id="status"></p>
   </div>
 
   <script>
     const CLIENT_ID = '213451192363-pg97nc6g46a8qmj7utc6qrh912c15hcf.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
     let tokenClient;
-    let accessToken = null;
+    let gapiInited = false;
+    let gisInited = false;
 
-    function formatEntry() {
-      const date = document.getElementById("entryDate").value;
-      const places = document.getElementById("places").value.trim();
-      const meetings = document.getElementById("meetings").value.trim();
-      const appointments = document.getElementById("appointments").value.trim();
-      const reminders = document.getElementById("reminders").value.trim();
-      const journal = document.getElementById("journal").value.trim();
-      const events = document.getElementById("events").value.trim();
-
-      if (!date) {
-        alert("Please enter a date.");
-        return null;
-      }
-
-      const content = 
-`# ${date}
-## Places Visited:
-${places}
-
-## Meetings:
-${meetings}
-
-## Appointments:
-${appointments}
-
-## Things to Remember:
-${reminders}
-
-## Journal Entry:
-${journal}
-
-## Upcoming Events:
-${events}
-
---------------------------------------
-
-`;
-      return { content, filename: \`journal-\${date}.txt\` };
+    function gapiLoaded() {
+      gapi.load('client', initializeGapiClient);
     }
 
-    function saveLocal() {
-      const entry = formatEntry();
-      if (!entry) return;
-      const blob = new Blob([entry.content], { type: "text/plain;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = entry.filename;
-      link.click();
+    async function initializeGapiClient() {
+      await gapi.client.init({ apiKey: '', discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
+      gapiInited = true;
     }
 
-    function authorizeAndUpload() {
-      const entry = formatEntry();
-      if (!entry) return;
-
+    function gisLoaded() {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: (tokenResponse) => {
-          accessToken = tokenResponse.access_token;
-          gapi.load('client', () => {
-            gapi.client.init({}).then(() => {
-              createFolderAndUpload(entry.filename, entry.content);
-            });
-          });
-        }
+          gapi.client.setToken(tokenResponse);
+          document.getElementById("journalForm").style.display = "block";
+          document.getElementById("signinDiv").style.display = "none";
+        },
       });
-
-      tokenClient.requestAccessToken();
     }
 
-    async function createFolderAndUpload(filename, content) {
+    window.onload = () => {
+      gapiLoaded();
+      gisLoaded();
+      document.getElementById("signinDiv").innerHTML = '<button onclick="tokenClient.requestAccessToken()">Sign in with Google</button>';
+    };
+
+    document.getElementById("journalForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const content = `
+Places Visited: ${document.getElementById("places").value}
+Meetings: ${document.getElementById("meetings").value}
+Appointments: ${document.getElementById("appointments").value}
+Things to Remember: ${document.getElementById("remember").value}
+Journal Entry:
+${document.getElementById("entry").value}
+
+Upcoming Events:
+${document.getElementById("events").value}
+      `.trim();
+
+      const filename = `Journal_${new Date().toISOString().split('T')[0]}.txt`;
+
       try {
-        const folderRes = await gapi.client.drive.files.list({
-          q: "name='Journal' and mimeType='application/vnd.google-apps.folder'",
-          fields: "files(id)",
-        });
+        const folderId = await getOrCreateFolder("Journal");
 
-        let folderId;
-        if (folderRes.result.files.length > 0) {
-          folderId = folderRes.result.files[0].id;
-        } else {
-          const createFolderRes = await gapi.client.drive.files.create({
-            resource: {
-              name: "Journal",
-              mimeType: "application/vnd.google-apps.folder",
-            },
-            fields: "id",
-          });
-          folderId = createFolderRes.result.id;
-        }
-
-        const metadata = new FormData();
-        metadata.append("metadata", new Blob([JSON.stringify({
+        const fileMetadata = {
           name: filename,
-          parents: [folderId],
-          mimeType: "text/plain"
-        })], { type: "application/json" }));
-        metadata.append("file", new Blob([content], { type: "text/plain" }));
+          parents: [folderId]
+        };
+        const file = new Blob([content], { type: 'text/plain' });
+        const form = new FormData();
+        form.append("metadata", new Blob([JSON.stringify(fileMetadata)], { type: "application/json" }));
+        form.append("file", file);
 
-        const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+        const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
           method: "POST",
-          headers: new Headers({ Authorization: "Bearer " + accessToken }),
-          body: metadata
+          headers: new Headers({ Authorization: "Bearer " + gapi.client.getToken().access_token }),
+          body: form,
         });
 
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
+        if (response.ok) {
+          document.getElementById("status").textContent = "Journal entry saved successfully!";
+        } else {
+          document.getElementById("status").textContent = "Upload failed.";
         }
-
-        alert("✅ Entry uploaded to Google Drive in 'Journal' folder.");
       } catch (error) {
-        alert("Upload failed: " + error.message);
-        console.error(error);
+        document.getElementById("status").textContent = "Error: " + error.message;
+      }
+    });
+
+    async function getOrCreateFolder(folderName) {
+      const res = await gapi.client.drive.files.list({
+        q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+        fields: "files(id, name)"
+      });
+
+      if (res.result.files && res.result.files.length > 0) {
+        return res.result.files[0].id;
+      } else {
+        const folderMetadata = {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder'
+        };
+
+        const response = await gapi.client.drive.files.create({
+          resource: folderMetadata,
+          fields: 'id'
+        });
+        return response.result.id;
       }
     }
   </script>
