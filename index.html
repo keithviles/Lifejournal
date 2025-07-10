@@ -39,21 +39,32 @@
   <div class="container">
     <h2>Smart Journal</h2>
     <div id="signinDiv"></div>
+
     <form id="journalForm" style="display:none;">
+      <label for="date">Date</label>
+      <input type="date" id="date" required />
+
       <label>Places Visited</label>
       <input type="text" id="places" />
+
       <label>Meetings</label>
       <input type="text" id="meetings" />
+
       <label>Appointments</label>
       <input type="text" id="appointments" />
+
       <label>Things to Remember</label>
       <textarea id="remember"></textarea>
+
       <label>Journal Entry</label>
       <textarea id="entry"></textarea>
+
       <label>Upcoming Events</label>
       <textarea id="events"></textarea>
+
       <button type="submit">Save Entry</button>
     </form>
+
     <p id="status"></p>
   </div>
 
@@ -63,7 +74,6 @@
 
     let tokenClient;
     let gapiInited = false;
-    let gisInited = false;
 
     function gapiLoaded() {
       gapi.load('client', initializeGapiClient);
@@ -94,11 +104,21 @@
 
     document.getElementById("journalForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      const dateValue = document.getElementById("date").value;
+      if (!dateValue) {
+        alert("Please select a date.");
+        return;
+      }
+
       const content = `
+Date: ${dateValue}
+
 Places Visited: ${document.getElementById("places").value}
 Meetings: ${document.getElementById("meetings").value}
 Appointments: ${document.getElementById("appointments").value}
 Things to Remember: ${document.getElementById("remember").value}
+
 Journal Entry:
 ${document.getElementById("entry").value}
 
@@ -106,7 +126,7 @@ Upcoming Events:
 ${document.getElementById("events").value}
       `.trim();
 
-      const filename = `Journal_${new Date().toISOString().split('T')[0]}.txt`;
+      const filename = `Journal_${dateValue}.txt`;
 
       try {
         const folderId = await getOrCreateFolder("Journal");
