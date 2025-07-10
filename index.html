@@ -73,7 +73,6 @@
     const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
     let tokenClient;
-    let gapiInited = false;
 
     function gapiLoaded() {
       gapi.load('client', initializeGapiClient);
@@ -81,7 +80,6 @@
 
     async function initializeGapiClient() {
       await gapi.client.init({ apiKey: '', discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
-      gapiInited = true;
     }
 
     function gisLoaded() {
@@ -112,18 +110,13 @@
       }
 
       const content = `
-Date: ${dateValue}
-
-Places Visited: ${document.getElementById("places").value}
-Meetings: ${document.getElementById("meetings").value}
-Appointments: ${document.getElementById("appointments").value}
-Things to Remember: ${document.getElementById("remember").value}
-
-Journal Entry:
-${document.getElementById("entry").value}
-
-Upcoming Events:
-${document.getElementById("events").value}
+[Date] ${dateValue}
+[PlacesVisited] ${document.getElementById("places").value}
+[Meetings] ${document.getElementById("meetings").value}
+[Appointments] ${document.getElementById("appointments").value}
+[ThingsToRemember] ${document.getElementById("remember").value}
+[JournalEntry] ${document.getElementById("entry").value}
+[UpcomingEvents] ${document.getElementById("events").value}
       `.trim();
 
       const filename = `Journal_${dateValue}.txt`;
