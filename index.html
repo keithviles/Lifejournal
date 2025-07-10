@@ -119,7 +119,9 @@
 [UpcomingEvents] ${document.getElementById("events").value}
       `.trim();
 
-      const filename = `Journal_${dateValue}.txt`;
+      const now = new Date();
+const timestamp = now.toISOString().split('T')[1].replace(/[:.]/g, '').slice(0, 6); // HHMMSS
+const filename = `Journal_${dateValue}_${timestamp}.txt`;
 
       try {
         const folderId = await getOrCreateFolder("Journal");
